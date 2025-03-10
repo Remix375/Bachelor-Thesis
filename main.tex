@@ -44,6 +44,14 @@ Secondly, we showed that the scoring for different features isn't a submodular f
 \usepackage{titling}
 \usepackage[nottoc,numbib]{tocbibind}
 
+
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{tikz}
+\usepackage{graphicx}
+
 %% \predate{}
 %% \postdate{}
 %% \date{}
@@ -165,6 +173,7 @@ Such methods include among others: pca, xgboost, Autoencoder, Variational Autoen
 
 The most recent and best model on this dataset is Divad.
 \subsubsection{Divad}
+\label{subsec:divad_domain}
 Divad is an anomaly detection method based around a VAE architecture \cite{Divad}. This method was create to address the difference in the behaviour of traces based on the parameters and properties of the Spark application. We will call "Domain" the context in which the application is run. This context is characterised by the following elements: processing period, number of active executors, memory profile and input rate.\\\\
 The different domains pose a real problem when trying to identify anomalies. A certain behavior can be considered anomalous in one domain but not in another. `add plot`.
 The limited amount of data also makes it impossible to train a model for each domain. Therefore we need a method that can detect anomalies and generalize to new domains. This is Divad.\\\\
@@ -220,13 +229,42 @@ This score reflects the segmentation of the feature with respect to anomaly and 
 Exstream selects the best features based on reward leap filtering. It also provides methods to filter out redundant features using correlation clusters. It also removes "false positive" features which are defined as those with excessively large standard deviation or that tend to only increase or decrease on both the normal and anomalous interval.\\
 
 \subsubsection{Exstream using Bins}
-An attempt to improve Exstream was made by Mija Pilkaite during her Bachelor thesis \cite{MijaExstream}. The first idea was to use bins to discretize the data. This would make the method more suited for continuous data. Each feature values would be divided into b bins. Each bin would be marked as either Normal, Anomalous or Mixed. The entropy would then be computed on these bins. 
-The second idea was to remove uncertainty in the anomalous interval boundaries. Even when using ground truth segments with anomalous intervals marked by hand, there in always some uncertainty as to the data at the endpoints of the intervals. \\
-In order to minimize this labeling uncertainty, the points would have different weights in the computation of the entropy depending on their position in the trace. This weighting would be done using a Gaussian distribution centered around the middle of the interval.\\
+An attempt to improve Exstream was made by Mija Pilkaite during her Bachelor thesis \cite{MijaExstream}. The first idea was to use bins to discretize the data. This would make the method more suited for continuous data. Each feature values would be divided into b bins. Each bin would be marked as either Normal, Anomalous or Mixed. The entropy would then be computed on these bins instead of points. 
+The second idea was to reduce uncertainty in the anomalous interval boundaries. Even when using ground truth segments with anomalous intervals marked by hand, there in always some uncertainty as to exact endpoints of the intervals. \\
+In order to minimize this labeling uncertainty, the points would have different weights in the computation of the entropy depending on their position in the trace. This weighting would be done using a Gaussian distribution centered around the middle of the interval as such:
+% Equation
+\[
+w_t =
+\begin{cases}
+\exp \left( - \left( \frac{| position - \frac{interval\_length}{2} |}{\sigma \times \frac{interval\_length}{100}} \right)^{\beta} \right), & \text{if } 0 \leq position \leq interval\_length \\
+0, & \text{otherwise}
+\end{cases}
+\]
+This was further worked on by Clement Martineau who fixed some issues and made the method work better in higher dimensions.\\
+\subsubsection{Metrics}
+The Exathlon pipeline provides a set of metrics to evaluate the performance of the explanation models. These metrics are the following:
+\begin{enumerate}
+  \item ED1: These metrics are based on local behavior of the anomaly explanation.
+  \begin{itemize}
+    \item Time: The time taken to compute the explanation.
+    \item Size: The size of the explanation. This is the number of features contained in the explanation.
+    \item Perturbed Size: Size of the explanation after perturbation. A perturbation is defined as a random sampling of 80\% of the data in the normal and anomalous intervals. The perturbed size is the number of features in the explanation of a trace having been perturbed.
+    \item Instability: A measure of the difference in the explanation before and after a perturbation. A high instability means that the explanation isn't locally stable.
+    \item F1 Score, Precision, Recall: These metrics are computed by getting an explanation on a randomly sampled 80\% of the normal and anomalous dat and then testing the explanation on the remaining 20\%. The testing is done on the intervals being returns as being anomalous. From them a Precision and Recall score are computed. The F1 Score is the harmonic mean of the two. Similarly as for the instability, the random sampling and evaluation are carried out 5 times and the average is taken.
+  \end{itemize}
+  \item ED2: These metrics are based on global behavior of the anomaly explanation.
+  \begin{itemize}
+    \item Discordance: This is the degree of disagreement between the explanation for anomalies of the same type. This measure is computed for each type of anomaly as the entropy of the number of each feature found in all explanations of this type. Then taking two to that power and normalizing by the average number of features in the explanations.
+    \item F1 Score, Precision, Recall: these metrics are computed by getting an explanation on one sample and evaluating it on all the other test samples. Similarly as for ED1, these scored are computed on the intervals being returned as being anomalous. The F1 Score is the average of the F1 Scores computed on each other test sample.
+  \end{itemize}
 
-\cite{MijaExstream}
-\subsection{Metrics}
-
+\end{enumerate}
+These metrics are all computed for each type of anomaly as well as for the whole dataset.\\
+It is important to note the limitations of these metrics. For anomaly explanation contrary to anomaly detection, there is no ground truth. Therefore getting perfect Discordance and Stability does not imply that the explanation is good. For example a method returning \textit{feature1} as an explanation everytime would get perfect scores for both metrics. This is especially important for explanation methods that do not provide intervals but only important features. This is why inspecting specific examples and determining if the explanation provided is relevant is important.\\
+Another limitation comes from ED2 F1 score, Precision and Recall. As stated in \autoref{subsec:divad_domain}, the domain of the trace being considered is important. A point that could be considered an anomaly in one domain could be normal in another. Therefore an interval being selected as an explanation in one domain could be considered normal in another. The fact that we compare explanations against all other test samples means that we are comparing explanations from different domains. This property of our data significantly undermines the importance of these metrics.
+We can even go further and state that the existence of different domains in our data undermines the global consistency of our anomaly explanator, at least when it comes to intervals.\\\\
+These metrics are usefull in comparing anomaly explanation methods. However, quantifying the importance of each is difficult. Especially when considering metrics such as Discordance and Instability. The way these metrics is computed is arbitrary and their interpretation is not straightforward. This is especially true for Discordance when being normalize, we raise two to the power of the entropy score and divide by the average number of features in an explanation. These manipulations cloud the interpretation of the metric and the way it would change when adding or removing features.\\\\
+Overall, these metrics are very usefull in comparing different methods. However, they should be taken with a grain of salt and the results should be interpreted with caution\\  
 
 \section{Improving the sample set}
 

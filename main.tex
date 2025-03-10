@@ -141,13 +141,8 @@ Secondly, we showed that the scoring for different features isn't a submodular f
 \newpage
 
 %\pagenumbering{arabic}
-
 \section{Introduction}
-
 The surge in data
-
-
-
 \cite{DBLP:journals/x/Turing37}
 \section{Related works}
 \section{The Exathlon project}
@@ -163,14 +158,11 @@ The dataset consists of 59 undisturbed traces and 34 disturbed traces constituti
     \item T5: driver failure
     \item T6: executor failure
 \end{itemize}
-
 The data is processed and then turned into a \textit{window dataset} which transforms the data into a sliding window format in order to detect the anomalies.
-
 \subsection{Anomaly detection}
 The anomaly detection consists in three steps. First training the \textit{window model}. This model gives an anomaly score to a window of a certain size. Then following the "Unifying anomaly detection method" introduced by Vincent Jacob \cite{Divad}, we obtain an "Online" anomaly scoring function which given the scoring for windows, attributes a score for each point. This scoring function is used to determine a threshold above which points will be labelled as anomalies in the anomaly detection step.\\
 Many different models belonging to various families of methods \cite{Schmidl2022} are implemented and ready to be evaluated.\\
 Such methods include among others: pca, xgboost, Autoencoder, Variational Autoencoder, LSTM, deep SVDD, deep SAD, iForest...\\
-
 The most recent and best model on this dataset is Divad.
 \subsubsection{Divad}
 \label{subsec:divad_domain}
@@ -182,9 +174,6 @@ The way it works is by assuming two independent priors that define the data z. T
 The objective is thus to approximate these prior spaces from the data. In order to do so, Divad employs a Variational Autoencoder structure with two independent encoders and one decoder. The first encoder is meant to capture the Class information and the second the Domain information. This is done using well chosen error functions.\\
 We therefore end up with two latent spaces: $z_y$ and $z_d$ that contain respectively information about the class and the domain of the data. We then use these two latent space to reconstruct the data.\\
 We get an anomaly score by comparing the class latent space with what we would expect from the normal class. This is done by computing the KL divergence between the two distributions.\\
-
-
-
 \subsection{Anomaly Explanation}
 The anomaly explanation step will be the main focus of this paper. The objective of this step is to give a human readable and actionable explanation of the anomaly. This can be done in many ways such as lists of feature importance or plots as we have seen in the related works. In this paper, the focus will be on the Exstream method. For each anoamaly, this method will output the features that cause the anomaly as well as the intervals where the anomaly is happening.\\
 The explanation is given as a boolean expression in Conjunctive Normal Form. It consists of a conjunction of clauses, where each clause is a disjunction of predicates. Each predicate follows the form \{v o c\}, where v represents a feature, c is a constant, and o is one of the five operators: $o\in\{>, <, \geq, \leq, =\}$.\\
@@ -198,7 +187,7 @@ There previously existed two versions of Exstream. The original version was intr
   \label{fig:exstreamplot}
 \end{figure}
 Originally, Exstream was created to provide a rigorous and formal method for providing short and human readable explanations for anomalies. This method presents the challenge of finding the optimal explanation to an anomaly as a submodular optimization problem. The intuition behind this model is that adding features to our explanation has a diminishing return. This is because the more features we add, the less information new features will provide.\\
-Submodular optimisation being NP-hard, a heuristice was therefore introduced to solve the problem. This method relies on Entropy to compute single feature scores.\\\\
+Submodular optimization being NP-hard, a heuristice was therefore introduced to solve the problem. This method relies on Entropy to compute single feature scores.\\\\
 We start with two sets of points $S_a$ and $S_n$ containing respectively the anomalous and normal points.
 For each feature $f_i$, we will sort the points in $S_a$ and $S_n$ and merge them into one set. We will then define segments on this set as neighbouring points of the same class.
 
@@ -224,10 +213,7 @@ The final score for a feature is then:
     score(f_i) = \frac{H_{segmentation} + H_{max}}{H_{class}}
 \end{equation}
 This score reflects the segmentation of the feature with respect to anomaly and normal classes. The higher the score, the more separated normal and anomaly classes are. For example a feature with a score of 1 would have all the anomaly points in one segment and all the normal points in another. As we can see on \autoref{fig:exstreamplot}, the first two features have a score of 1. The third a score of 0.31 and the fourth 0.18.\\
-
-
 Exstream selects the best features based on reward leap filtering. It also provides methods to filter out redundant features using correlation clusters. It also removes "false positive" features which are defined as those with excessively large standard deviation or that tend to only increase or decrease on both the normal and anomalous interval.\\
-
 \subsubsection{Exstream using Bins}
 An attempt to improve Exstream was made by Mija Pilkaite during her Bachelor thesis \cite{MijaExstream}. The first idea was to use bins to discretize the data. This would make the method more suited for continuous data. Each feature values would be divided into b bins. Each bin would be marked as either Normal, Anomalous or Mixed. The entropy would then be computed on these bins instead of points. 
 The second idea was to reduce uncertainty in the anomalous interval boundaries. Even when using ground truth segments with anomalous intervals marked by hand, there in always some uncertainty as to exact endpoints of the intervals. \\
@@ -260,13 +246,24 @@ The Exathlon pipeline provides a set of metrics to evaluate the performance of t
 
 \end{enumerate}
 These metrics are all computed for each type of anomaly as well as for the whole dataset.\\
-It is important to note the limitations of these metrics. For anomaly explanation contrary to anomaly detection, there is no ground truth. Therefore getting perfect Discordance and Stability does not imply that the explanation is good. For example a method returning \textit{feature1} as an explanation everytime would get perfect scores for both metrics. This is especially important for explanation methods that do not provide intervals but only important features. This is why inspecting specific examples and determining if the explanation provided is relevant is important.\\
+It is important to note the limitations of these metrics. For anomaly explanation contrary to anomaly detection, there is no ground truth. Therefore getting perfect Discordance and Stability does not imply that the explanation is good. For example a method returning \textit{feature1} as an explanation every time would get perfect scores for both metrics. This is especially important for explanation methods that do not provide intervals but only important features. This is why inspecting specific examples and determining if the explanation provided is relevant is important.\\
 Another limitation comes from ED2 F1 score, Precision and Recall. As stated in \autoref{subsec:divad_domain}, the domain of the trace being considered is important. A point that could be considered an anomaly in one domain could be normal in another. Therefore an interval being selected as an explanation in one domain could be considered normal in another. The fact that we compare explanations against all other test samples means that we are comparing explanations from different domains. This property of our data significantly undermines the importance of these metrics.
 We can even go further and state that the existence of different domains in our data undermines the global consistency of our anomaly explanator, at least when it comes to intervals.\\\\
-These metrics are usefull in comparing anomaly explanation methods. However, quantifying the importance of each is difficult. Especially when considering metrics such as Discordance and Instability. The way these metrics is computed is arbitrary and their interpretation is not straightforward. This is especially true for Discordance when being normalize, we raise two to the power of the entropy score and divide by the average number of features in an explanation. These manipulations cloud the interpretation of the metric and the way it would change when adding or removing features.\\\\
-Overall, these metrics are very usefull in comparing different methods. However, they should be taken with a grain of salt and the results should be interpreted with caution\\  
-fadf
+Another limitation that stems from these metrics is that quantifying the importance of each is difficult. Especially when considering metrics such as Discordance and Instability. The way these metrics is computed is arbitrary and their interpretation is not straightforward. This is especially true for Discordance when being normalize, we raise two to the power of the entropy score and divide by the average number of features in an explanation. These manipulations cloud the interpretation of the metric and the way it would change when adding or removing features.\\\\
+Overall, these metrics are very useful in comparing different methods. However, they should be taken with a grain of salt and the results should be interpreted with caution\\  
+*** add metrics for exstream and exstream bin and say that the bin improvement is useless ***
+\section{Objectives}
+The focus of this paper will be to improve Exstream. The version we intend to work on will be the original version. This choice is motivated by a few reasons. \\
+First, looking at the metrics and inspecting a few examples shows that the version using bins does not offer any significant improvements. 
+Secondly, the time to run is multiplied over x times. This performance issue is partly caused by unoptimized code and partly by an overcomplicated algorithm. The algorithm was also never previously evaluated as part of the Exathlon pipeline and only on a subset of the available data. 
+The complexity of the algorithm is also shown by edge cases causing errors on specific traces when evaluating it on the entirety of the Exathlon data. \\
+The complexity of the algorithm makes it very rigid and hard to modify in relevant ways while at the same time the runtime is too long to be used in a real time setting.\\\\
+There are two ways in which we can improve Exstream. The first is to improve the sample set. The second is to improve the algorithm being used. In this paper we will address both of these points with varying degrees of success.\\
 \section{Improving the sample set}
+A problem noticed when evaluating Exstream on the Exathlon data is that the normal points used are not necessarily the most representative of the current anomaly. This is due to the fact that the normal points selected are right before the anomaly. There is therefore a strong correlation between these points and time. The most obvious examples of this are features that are only increasing or decreasing over the normal and anomalous intervals. The segmentation of these features will be perfect and the score will be 1 while these features aren't relevant explanations for the anomaly.\\
+This specific case of time correlation is already addressed in the original Exstream paper using false positive filtering. However less obvious cases of correlation are not addressed and can lead to wrong explanations.\\
+At the same time we will attempt to get sample of normal points "closer" to the anomaly. This sample should be more representative of the current anomaly and only the relevant features that induced the anomaly will significantly change. This should enable a better explanation.\\
+\subsection{Sampling using the latent space}
 
 \section{Generalizing Exstream to Higher dimensions}
 \subsection{Submodular optimization}

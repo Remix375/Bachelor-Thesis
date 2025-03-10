@@ -1,0 +1,44 @@
+\begin{thebibliography}{1}
+
+\bibitem{Divad}
+Vincent Jacob and Yanlei Diao.
+\newblock Unsupervised anomaly detection in multivariate time series across
+  heterogeneous domains.
+\newblock {\em PVLDB}, 14(1):XXX--XXX, 2025.
+
+\bibitem{Exathlon}
+Vincent Jacob, Fei Song, Arnaud Stiegler, Bijan Rad, Yanlei Diao, and Nesime
+  Tatbul.
+\newblock Exathlon: A benchmark for explainable anomaly detection over time
+  series.
+\newblock {\em PVLDB}, 14(11):2613--2626, 2021.
+
+\bibitem{ClementExstream}
+Clement Martineau.
+\newblock Advanced algorithm design for explainable anomaly detection on data
+  streams.
+\newblock Internship report, Laboratoire d'Informatique de l'École
+  Polytechnique (LIX), Team CEDAR (LIX - INRIA), July 2024.
+
+\bibitem{MijaExstream}
+Mija Pilkaite.
+\newblock Algorithm design for explainable anomaly detection for data streams,
+  2023/2024.
+
+\bibitem{Schmidl2022}
+Sebastian Schmidl, Phillip Wenig, and Thorsten Papenbrock.
+\newblock Anomaly detection in time series: A comprehensive evaluation.
+\newblock {\em PVLDB}, 15(9):1779--1797, 2022.
+
+\bibitem{DBLP:journals/x/Turing37}
+Alan~M. Turing.
+\newblock On computable numbers, with an application to the
+  entscheidungsproblem.
+\newblock {\em Proc. London Math. Soc.}, s2-42(1):230--265, 1937.
+
+\bibitem{Exstream}
+Haopeng Zhang, Yanlei Diao, and Alexandra Meliou.
+\newblock Exstream: Explaining anomalies in event stream monitoring.
+\newblock pages 156--167, 2017.
+
+\end{thebibliography}

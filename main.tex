@@ -263,9 +263,37 @@ A problem noticed when evaluating Exstream on the Exathlon data is that the norm
 This specific case of time correlation is already addressed in the original Exstream paper using false positive filtering. However less obvious cases of correlation are not addressed and can lead to wrong explanations.\\
 At the same time we will attempt to get sample of normal points "closer" to the anomaly. This sample should be more representative of the current anomaly and only the relevant features that induced the anomaly will significantly change. This should enable a better explanation.\\
 \subsection{Sampling using the latent space}
+The latent space of a VAE has a well defined structure. The normal points will be distributed following a normal distribution. The space is also continuous, at least close to the normal point distributions. The encoder has been trained to give the space other properties. The normal points will be close to each other and the anomaly points will be further away. This is how the anomaly score is defined. By sampling normal points that are close to the anomalies in this space, we hope to obtain points that are more representative. In that way, only features that contributed to the anomalous behavior will change.\\
+\subsubsection{Reconstuction}
+\subsubsection{Similar domains}
+
 
 \section{Generalizing Exstream to Higher dimensions}
+As seen earlier, exstream computes entropy on a single feature. This is a limitation as anomalies can be caused by the interaction of two or more features. This method was initially given as a way of finding an approximation to the problem of finding the best set of features to explain an anomaly. This problem was believed to be submodular.\\
+In this section we will start by showing that this problem isn't submodular. We will then present multiple ways the entropy measure can be generalized to multiple dimensions. We will then evaluate these methods and empirically show benefits that are derived from using them.\\
 \subsection{Submodular optimization}
+Let $A$ be a set and $\mathbb{A} = \mathcal{P}(A)$ be its powerset. The set function $f: \mathbb{A} \rightarrow \mathbb{R}$ is submodular if $\forall X, Y \subseteq \mathbb{A}$, 
+\begin{align*}
+    f(X) + f(Y) \geq f(X \cup Y) + f(X \cap Y)
+\end{align*}
+It is also equivalent to saying $\forall X \subseteq Y \subseteq \mathbb{A}, \forall x \in \mathbb{A} \setminus Y$: 
+\begin{align*}
+    f(X \cup \{x\}) - f(X) \geq f(Y \cup \{x\}) - f(Y)
+\end{align*}
+The submodularity of a function reflects the diminishing return of adding elements to a set. This property is very useful in optimization problems as it allows for the use of greedy algorithms to obtain an approximate of the solution \cite{niazadehsubmodular}.\\
+This property has been shown to occur in feature selection problems but only in the case where features are independent \cite{submodular_independent}. This is not the case for our data.\\
+Let us show visually that the submodularity property does not hold. We start by formally defining our setting:\\
+We denote the features by numbers from 1 to 237. Let $D=[1, 237]$ be the set of all features. Then $\mathbb{D} = \mathcal{P} (D)$ be the powerset of $D$. We further annotate each interval of Anomalous and Normal points $(N_i, A_i)$ by a number $i$. We then define the function $f_i: \mathbb{D} \rightarrow [0, 1]$ as a function computing the entropy of the segmentation of the features being passed for the pair $(N_i, A_i)$.\\
+We need the function $f_i$ to be submodular for each pair $(N_i, A_i)$. Therefore let us present an example for which this property does not hold, see \autoref{fig:exstreamplot}. Here in either dimension there will be very high segmentation. However, considering both features we see a clear separation between the anomalous and normal points. Using the tree method for multi feature scoring we respectively get 0.012, 0.012 and 0.55 considering $[f_1]$, $[f_2]$ and $[f_1, f_2]$.\\
+Therefore the submodular property does not hold as $f([f_1]) + f([f_2]) < f([f_1] \cup [f_2]) + f([f_1] \cap [f_2])$. \\
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.45\textwidth]{images/norm_ano_ex.png}
+  \caption{Plot of two features $f_1$ and $f_2$. Blue points are normal $N_i$ and red points are anomalies $A_i$.}
+  \label{fig:exstreamplot}
+\end{figure}
+This example was specifically chosen but we see that in practice the submodular property is also broken. This property depends on the function being used to compute the entropy. Meaning that with a well chosen function it is possible that the submodular property holds. However, this function would loose a lot of information and would not choose the optimal selection of features.\\
+In conclusion we have proven that the submodular property does not hold for our data. This implies that we do not have an efficient way of finding the best set of features even with a multi dimensional entropy measure.\\
 \subsection{Methods for generalizing Entropy}
 \subsubsection{Boxes}
 \subsubsection{KNN}

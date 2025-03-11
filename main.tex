@@ -52,6 +52,8 @@ Secondly, we showed that the scoring for different features isn't a submodular f
 \usepackage{tikz}
 \usepackage{graphicx}
 
+\usepackage{float}
+
 %% \predate{}
 %% \postdate{}
 %% \date{}
@@ -295,8 +297,83 @@ Therefore the submodular property does not hold as $f([f_1]) + f([f_2]) < f([f_1
 This example was specifically chosen but we see that in practice the submodular property is also broken. This property depends on the function being used to compute the entropy. Meaning that with a well chosen function it is possible that the submodular property holds. However, this function would loose a lot of information and would not choose the optimal selection of features.\\
 In conclusion we have proven that the submodular property does not hold for our data. This implies that we do not have an efficient way of finding the best set of features even with a multi dimensional entropy measure.\\
 \subsection{Methods for generalizing Entropy}
+Generalizing the computation of entropy to higher dimensions isn't trivial. The measure of entropy is done after creating clusters. In one dimension this is simply done by taking segments containing the same type of points. The number of points in each segment is then used to compute the entropy.\\
+In higher dimensions we wish to keep a similar method. In order to do so we will thus only need to determine the optimal clustering method to be used.\\
+There are certain properties that our clustering method must have in order to make sure it works properly.
+\begin{itemize}
+  \item It must obtain a similar result to Exstream when applied to a single feature.
+  \item It must classify discontinue points into different clusters. Meaning that if there exists an anomalous point in between two normal points, these two normal points should be in different clusters.
+  \item The method must generalize to higher dimensions. 
+  \item The method must fit any distribution of the data and work on few points.
+  \item It must be possible to find intervals for the anomalies being clustered.
+  \item The computational complexity of the method must not be "too" high. This is a vague requirement but it is important to keep in mind that the method will be used in a real time setting and will need to be evaluated on many sets of features. An exponential growth in complexity in the number of points would for example make the method unusable.
+\end{itemize}
+We will now present a few methods that could be used to cluster the data.
 \subsubsection{Boxes}
-\subsubsection{KNN}
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.27\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{images/cubepoints.png}
+      \caption{Points in the space}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.35\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{images/bad clustercube2.png}
+      \caption{Clustering using 10x10 bins}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.35\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{images/bad clustercube1.png}
+      \caption{Clustering using 15x15 bins}
+  \end{subfigure}
+  \caption{Plot of points being clustered by using the Box method. Same coloured squares are in the same cluster.}
+\end{figure}
+The first method is inspired by the bin method for Exstream \cite{MijaExstream} presented above. The idea of dividing the feature space into bins to discretize the data can be easily generalized to higher dimensions. We would use n dimensional cubes to divide the space. We would then check the points in each cube and notate them as either normal, anomalous or mixed. Having done that, we would then merge adjacent cubes of the same type unless they are mixed in which case it isn't usefull to merge them. This would give us the clusters we need to compute the entropy.\\
+This method has the merit of being simple and computationally efficient running in $O(n)$ time with n being the number of points considered. However, this method does not generalize well to higher dimensions and to different distributions of the data.\\
+For example in the case with outlying points, as it is expected with anomalous data, the method would not be able to correctly merge the cubes. This would lead to a high number of clusters and a high entropy. The clusters are also highly dependent on the number of bins. The ideal number is impossible to know in advance and can be different per dimension and per trace.\\
+Overall this method can work on simple data but isn't resilient enough for our use.\\
+
+
+\subsubsection{Nearest neighbours}
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.27\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{images/clustnn.png}
+      \caption{Points in the space}
+  \end{subfigure}
+  \begin{subfigure}{0.35\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{images/actual_nn.png}
+      \caption{Clustering of the points.}
+  \end{subfigure}
+  \caption{Plot of points being clustered by using the nearest neighbours method. Same coloured points are in the same cluster.}
+  \label{fig:nn_sep}
+\end{figure}
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.27\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{images/or_class_nn_circle.png}
+      \caption{Points in the space}
+  \end{subfigure}
+  \begin{subfigure}{0.35\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{images/actual_nn_circle.png}
+      \caption{Clustering of the points.}
+  \end{subfigure}
+  \caption{Plot of points being clustered by using the nearest neighbours method. Same coloured points are in the same cluster.}
+  \label{fig:nn_circle}
+\end{figure}
+This method can be applied to single points or as an improvement to the post processing of the box method. It relies on the nearest neighbours of each points and is inspired directly by the property stating that we must "classify discontinue points into different clusters".\\
+The method is as follows. For each points, we will iteritavely get it's next nearest neighbour until reaching a point of the other class. We will cluster these points together. On top of that merge clusters if a point is already part of a cluster. This method makes it so if two clusters are discontinue, meaning a point of the other class is placed in between them, they won't be merged together. See \autoref{fig:nn_sep}.\\ 
+In practice we will use a KDtree for storing points and efficiently get the nearest neighbours. We will also restrict the maximum number of neighbours being considered in order to improve the efficiency.\\
+Let $n$ be the number of points and $k$  a hyper parameter being the maximum number of neighbours. The KDtree is created in $O(n \log(n))$, the nearest neighbours are then computed in $O(k n\log(n))$ and the clustering is done in $O(n)$. Overall the method runs in $O(n \log(n))$ time. The method is therefore efficient and can be used in real time.\\
+The method obtains the same results as Exstream on a single feature. It also generalizes well to higher dimensions and different distributions of the data as only the segmentation thereof is considered when segmenting. The method is relatively stable with respect to the hyper parameter $k$, the only case where it would matter is for a group of isolated points of size greater than k. Those could be clustered together but not with the rest of the group.\\
+The big issue with this method is the lack of intervals being determined. We only get points in clusters. These clusters aren't based on intervals. For example \autoref{fig:nn_circle} shows a case where the gray class doesn't translate to a clear interval. This is an issue as intervals strengthen the explanation and give much more information about the anomaly.\\
 \subsubsection{Decision Trees}
 \section{Conclusion}
 

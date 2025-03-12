@@ -286,13 +286,13 @@ The submodularity of a function reflects the diminishing return of adding elemen
 This property has been shown to occur in feature selection problems but only in the case where features are independent \cite{submodular_independent}. This is not the case for our data.\\
 Let us show visually that the submodularity property does not hold. We start by formally defining our setting:\\
 We denote the features by numbers from 1 to 237. Let $D=[1, 237]$ be the set of all features. Then $\mathbb{D} = \mathcal{P} (D)$ be the powerset of $D$. We further annotate each interval of Anomalous and Normal points $(N_i, A_i)$ by a number $i$. We then define the function $f_i: \mathbb{D} \rightarrow [0, 1]$ as a function computing the entropy of the segmentation of the features being passed for the pair $(N_i, A_i)$.\\
-We need the function $f_i$ to be submodular for each pair $(N_i, A_i)$. Therefore let us present an example for which this property does not hold, see \autoref{fig:exstreamplot}. Here in either dimension there will be very high segmentation. However, considering both features we see a clear separation between the anomalous and normal points. Using the tree method for multi feature scoring we respectively get 0.012, 0.012 and 0.55 considering $[f_1]$, $[f_2]$ and $[f_1, f_2]$.\\
+We need the function $f_i$ to be submodular for each pair $(N_i, A_i)$. Therefore let us present an example for which this property does not hold, see \autoref{fig:exstream2dplot}. Here in either dimension there will be very high segmentation. However, considering both features we see a clear separation between the anomalous and normal points. Using the tree method for multi feature scoring we respectively get 0.012, 0.012 and 0.55 considering $[f_1]$, $[f_2]$ and $[f_1, f_2]$.\\
 Therefore the submodular property does not hold as $f([f_1]) + f([f_2]) < f([f_1] \cup [f_2]) + f([f_1] \cap [f_2])$. \\
 \begin{figure}[h]
   \centering
   \includegraphics[width=0.45\textwidth]{images/norm_ano_ex.png}
   \caption{Plot of two features $f_1$ and $f_2$. Blue points are normal $N_i$ and red points are anomalies $A_i$.}
-  \label{fig:exstreamplot}
+  \label{fig:exstream2dplot}
 \end{figure}
 This example was specifically chosen but we see that in practice the submodular property is also broken. This property depends on the function being used to compute the entropy. Meaning that with a well chosen function it is possible that the submodular property holds. However, this function would loose a lot of information and would not choose the optimal selection of features.\\
 In conclusion we have proven that the submodular property does not hold for our data. This implies that we do not have an efficient way of finding the best set of features even with a multi dimensional entropy measure.\\
@@ -303,7 +303,7 @@ There are certain properties that our clustering method must have in order to ma
 \begin{itemize}
   \item It must obtain a similar result to Exstream when applied to a single feature.
   \item It must classify discontinue points into different clusters. Meaning that if there exists an anomalous point in between two normal points, these two normal points should be in different clusters.
-  \item The method must generalize to higher dimensions. 
+  \item The method must generalize to higher dimensions. The number of dimensions can be limited to $\approx10$ as explanations above this would be too long and wouldn't be useful.
   \item The method must fit any distribution of the data and work on few points.
   \item It must be possible to find intervals for the anomalies being clustered.
   \item The computational complexity of the method must not be "too" high. This is a vague requirement but it is important to keep in mind that the method will be used in a real time setting and will need to be evaluated on many sets of features. An exponential growth in complexity in the number of points would for example make the method unusable.
@@ -340,7 +340,7 @@ Overall this method can work on simple data but isn't resilient enough for our u
 \subsubsection{Nearest neighbours}
 \begin{figure}[H]
   \centering
-  \begin{subfigure}{0.27\textwidth}
+  \begin{subfigure}{0.35\textwidth}
       \centering
       \includegraphics[width=\linewidth]{images/clustnn.png}
       \caption{Points in the space}
@@ -355,7 +355,7 @@ Overall this method can work on simple data but isn't resilient enough for our u
 \end{figure}
 \begin{figure}[H]
   \centering
-  \begin{subfigure}{0.27\textwidth}
+  \begin{subfigure}{0.33\textwidth}
       \centering
       \includegraphics[width=\linewidth]{images/or_class_nn_circle.png}
       \caption{Points in the space}
@@ -373,8 +373,44 @@ The method is as follows. For each points, we will iteritavely get it's next nea
 In practice we will use a KDtree for storing points and efficiently get the nearest neighbours. We will also restrict the maximum number of neighbours being considered in order to improve the efficiency.\\
 Let $n$ be the number of points and $k$  a hyper parameter being the maximum number of neighbours. The KDtree is created in $O(n \log(n))$, the nearest neighbours are then computed in $O(k n\log(n))$ and the clustering is done in $O(n)$. Overall the method runs in $O(n \log(n))$ time. The method is therefore efficient and can be used in real time.\\
 The method obtains the same results as Exstream on a single feature. It also generalizes well to higher dimensions and different distributions of the data as only the segmentation thereof is considered when segmenting. The method is relatively stable with respect to the hyper parameter $k$, the only case where it would matter is for a group of isolated points of size greater than k. Those could be clustered together but not with the rest of the group.\\
-The big issue with this method is the lack of intervals being determined. We only get points in clusters. These clusters aren't based on intervals. For example \autoref{fig:nn_circle} shows a case where the gray class doesn't translate to a clear interval. This is an issue as intervals strengthen the explanation and give much more information about the anomaly.\\
+The big issue with this method is the lack of intervals being determined. We only get points in clusters. These clusters aren't based on intervals. For example \autoref{fig:nn_circle} shows a case where the gray class doesn't translate to a clear interval. This is an issue as intervals strengthen the explanation and give much more information about the anomaly.
 \subsubsection{Decision Trees}
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.35\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{images/tree_border.png}
+      \caption{Clustering of points.}
+  \end{subfigure}
+  \begin{subfigure}{0.35\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{images/decision_tree.png}
+      \caption{Corresponding decision tree.}
+  \end{subfigure}
+  \caption{Clustering of points and corresponding decision tree. Red points are anomalous and blue are normal. The lines mark the separation between clusters.}
+  \label{fig:decision_tree}
+\end{figure}
+The final method we will present is the use of decision trees to cluster points. The idea is to train a decision tree on the two sets of points we have. We then use the leaves of the tree as clusters. Intuitively, a decision tree splits the space into hypercubes. Each node splits the space in two along a certain feature. The leaves are a conjunction of these splits, in essence creating a hypercubes subset of the space being considered. \\
+In theory, the decision tree can split the space until each leaf is pure, i.e it contains only points of the same class. This would give us the optimal clustering. However, in practice we will allow the tree to split until having at minimum 10 points in each leaf. Mixed clusters are then handled similarly as in Exstream and given the maximum segmentation score. This is done for efficiency purposes. It is also important to note that this limitation does not impact significantly the results. Reaching this limit would mean that the points are very segmented and that the entropy would be high in any case.\\
+Now let us go over the properties of this method: 
+\begin{itemize}
+  \item The results are the same as Exstream when run on a single feature if we do not take into consideration the 10 point approximation when the points are too segmented.
+  \item Points are classified using Hypercubes. Therefore two points being classified in the same cluster means there are no points of the other class in between them. At the same time, two normal clusters with anomalous points in between cannot be classified together as the hypercube containing them would be impure.
+  \item As most models, decision trees suffere from the curse of dimensionality. However in our case the number of dimensions considered is low and the method would work fine.
+  \item A decision tree can fit any distribution. In our case we do not care about overfitting as we will not make predictions with it and only use it to cluster points.
+  \item As stated previously, Decision trees create hypercubes. This in effect gives us intervals.
+  \item We fit a decision tree on the data. This is done in $O(m n \log(n))$ with m being the number of dimensions and n being the number of points. In practice, the algorithm runs slightly faster than the nearest neighbor one. Overall the time complexity isn't too high.
+\end{itemize}
+This clustering method checks all of the properties we needed making it a good candidate for our use. The construction of the decision tree case be done using Gini impurity or entropy. We will use entropy as this creates a link between the creation of the tree and the measure we are trying to compute. At each node of the tree, the best split is created by minimizing the entropy of the two leaves created. This suits us as we are trying to minimize the entropy of the clusters.\\
+The use of hypercubes for clustering provides intervals for our explanation. However, this implies that some points that are adjacent will fall in multiple clusters. For example in \autoref{fig:exstream2dplot}, the normal points will be split into two clusters. This can either be seen as a limitation or as a strength of this method. This penalizes the use of multiple dimensions when explaining the anomaly. Higher dimensions implie more cuts. This will prevent the incorporation of irrelevant features as these would either decrease the entropy or not change it. A byproduct of this is that getting a score of 1 for n features implies that there is a feature alone in that set that gets a score of 1. i.e let $g_i$ be the entropy function on segment $i$. $f_j$ is a feature for $j\in[1, n]$.:
+\begin{align*}
+  g_i([f_1, f_2, ..., f_n]) = 1 \Rightarrow \exists j \in [1, n], g_i([f_j]) = 1
+\end{align*}
+This is due to the fact that getting an entropy score of 1 implies that the points are perfectly segmented, thus finding 2 clusters. Using decision trees this implies a single cut along one dimension. Therefore the feature on which this cut was done is enough on its own to perfectly segment the points.\\
+It is also possible to overcome this limitation by merging neighbouring leaves into one cluster. The intervals would still be given separately but the clusters would be considered as one, lowering the overall entropy. This would be done by checking the neighbouring leaves and merging them if they contain points of the same class. This would be done iteratively until no more merges are possible.\\
+Decision trees also do not have any garantees of finding the best clusters. The method is greedy and will only split the space along the best feature at each node. This can lead to suboptimal clustering as for example in \autoref{fig:decision_tree}, the normal points on the right are split off early and are separated from the rest whereas they could have been clustered together. However, in practice the method works well and the results are satisfactory.\\
+
+
 \section{Conclusion}
 
 \newpage

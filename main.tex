@@ -8,7 +8,7 @@
 \newcommand{\supervisorinstitution}[0]{École Polytechnique}
 
 \newcommand{\abstracttext}[0]{%
-The increasing amount of data being created end processed in all sectors has led to the use of automatic methods for filtering and analysing this influx of information. 
+The increasing amount of data being created and processed in all sectors has led to the use of automatic methods for filtering and analysing this influx of information. 
 These methods often rely on complex models whose methods are intractable and as such act as "Black Boxes". Such techniques are used for monitoring traffic on many different types of servers. Anomaly detection methods are important as they make it possible to know in real time when an issue has occured. However, in order to efficiently resolve any issue, as important as detecting an anomaly is understanding why the flagged interval is anomalous.
 This is where the field of Explainable AI comes into play.
 In this paper, we will improve Exstream, which is a method relying on the single feature entropy measure between normal points and anomalous points to determine features that contribute the most to the anomaly and the feeature intervals where anomalies would happen.
@@ -252,7 +252,23 @@ Another limitation comes from ED2 F1 score, Precision and Recall. As stated in \
 We can even go further and state that the existence of different domains in our data undermines the global consistency of our anomaly explanator, at least when it comes to intervals.\\\\
 Another limitation that stems from these metrics is that quantifying the importance of each is difficult. Especially when considering metrics such as Discordance and Instability. The way these metrics is computed is arbitrary and their interpretation is not straightforward. This is especially true for Discordance when being normalize, we raise two to the power of the entropy score and divide by the average number of features in an explanation. These manipulations cloud the interpretation of the metric and the way it would change when adding or removing features.\\\\
 Overall, these metrics are very useful in comparing different methods. However, they should be taken with a grain of salt and the results should be interpreted with caution\\  
-*** add metrics for exstream and exstream bin and say that the bin improvement is useless ***
+\subsubsection{Evaluating current methods}
+We start by evaluating the current existing Exstream methods and find little improvement in the Exstream Bins method over the orinal. The instability and discordance are reduced but so is the F1 Score in both ED1 and ED2 settings. The length of the explanation is also increased. The true bottle neck however is the runtime which is multiplied by a factor of 100. This limits its use in real time monitoring. The delay is due in part to poorly optimized code but also to the apparent complexity of the algorithm in processing the bins. The algorithm was also never evaluated on the entirety of the Exathlon data and only on a subset with shorted traces which limited the impact on performance.\\ 
+In order to compare, we also evaluate the original Exstream while removing the first and last 5\% normal and anomalous points. This in practice removes the uncertainty linked to the labeling at the boundaries of the intervals while keeping the algorithm simple and preserving speed. This new method improves the instability and discordance over Exstream while keeping a high F1 Score. The length of the explanation increases. This can be explained by the fact that labeling noise initially created segmentation in well separated features. Removing the noise leads to more well separated features to explain the data. \\
+\begin{table}[h]
+  \centering
+  \begin{tabular}{|c|c|c|c|c|c|c|}
+      \hline
+      Methods & Time & Length & Instability & Discordance & ED1 F1 Score & ED2 F1 Score\\ 
+      \hline
+      Exstream  & 1.5  & 1.6  & 2.26  & 8.13 & 0.88 & 0.87  \\ 
+      Exstream 90\%  & 1.2  & 3.4  & 2.0  & 6.8 & 0.88 & 0.89\\ 
+      Exstream Bins  & 140.7  & 4.3  & 1.5  & 6.16 & 0.79 & 0.72 \\ 
+      \hline
+  \end{tabular}
+  \caption{Example Table}
+  \label{tab:example}
+\end{table}
 \section{Objectives}
 The focus of this paper will be to improve Exstream. The version we intend to work on will be the original version. This choice is motivated by a few reasons. \\
 First, looking at the metrics and inspecting a few examples shows that the version using bins does not offer any significant improvements. 
@@ -421,7 +437,24 @@ When using the decision tree method, we will obtain hypercubes as intervals. The
 \begin{align*}
   (f_1 \in I^1_1 \land f_2 \in I^2_1) \lor (f_1 \in I^1_2 \land f_2 \in I^2_2) ...
 \end{align*}
-This inversion between $\land$ and $\lor$ provides much more information about specific intervals where points are anomalous. It is also possible to return multiple pairs as explanation. These would be linked using $\land$ clauses.\\
+This inversion between $\land$ and $\lor$ provides much more information about specific intervals where points are anomalous. It is also possible to return multiple pairs as explanation. These would be linked using $\land$ clauses.
+\subsection{Results}
+\begin{table}[h]
+  \centering
+  \begin{tabular}{|c|c|c|c|c|c|c|}
+      \hline
+      Methods & Time & Length & Instability & Discordance & ED1 F1 Score & ED2 F1 Score\\ 
+      \hline
+      Exstream  & 1.5  & 1.6  & 2.26  & 8.13 & 0.88 & 0.87  \\ 
+      Exstream 90\%  & 1.2  & 3.4  & 2.0  & 6.8 & 0.88 & 0.89\\ 
+      Exstream Tree  & 87.9  & 2.9  & 1.63 & 7.22 & 0.997 & 0.94 \\ 
+      \hline
+  \end{tabular}
+  \caption{Example Table}
+  \label{tab:example}
+\end{table}
+
+
 \section{Conclusion}
 
 \newpage

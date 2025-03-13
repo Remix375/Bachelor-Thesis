@@ -179,6 +179,55 @@ We get an anomaly score by comparing the class latent space with what we would e
 The anomaly explanation step will be the main focus of this paper. The objective of this step is to give a human readable and actionable explanation of the anomaly. This can be done in many ways such as lists of feature importance or plots as we have seen in the related works. In this paper, the focus will be on the Exstream method. For each anoamaly, this method will output the features that cause the anomaly as well as the intervals where the anomaly is happening.\\
 The explanation is given as a boolean expression in Conjunctive Normal Form. It consists of a conjunction of clauses, where each clause is a disjunction of predicates. Each predicate follows the form \{v o c\}, where v represents a feature, c is a constant, and o is one of the five operators: $o\in\{>, <, \geq, \leq, =\}$.\\
 For example an explanation for an anomaly could be the following: (feature1 > 0.5) $\lor$ (feature1 < 0.8) $\land$ (feature2 = 0.7).\\
+In practice, the explanation is given as a json file with one entry per anomalous interval in the following format:
+\begin{verbatim}
+  {
+    "Trace":{
+      "Anomaly number and type":{
+          "feature_to_importance":{
+              "feature 1": score 1
+              "feature 2": score 2,
+              "feature 3": score 3
+          },
+          "feature_to_intervals":{
+              "feature 1":[
+                  [
+                      start,
+                      end,
+                      include start,
+                      include end
+                  ]
+              ],
+              "feature 2":[
+                  [
+                      start,
+                      end,
+                      include start,
+                      include end
+                  ],
+                  [
+                      start,
+                      end,
+                      include start,
+                      include end
+                  ]
+              ],
+              "feature 3":[
+                  [
+                    start,
+                    end,
+                    include start,
+                    include end
+                ]
+              ]
+          }
+      },
+      ...
+    }
+    ...
+  }
+  \label{explanation_format}
+\end{verbatim}
 There previously existed two versions of Exstream. The original version was introduced by Haopeng Zhang, Yanlei Diao and Alexandra Meliou  in 2017 \cite{Exstream}. It was then work uppon by Mija Pilkaite during her Bachelor thesis \cite{MijaExstream} and finally refined and improved by Clement Martineau \cite{ClementExstream}.\\
 \subsubsection{Original Exstream}
 \begin{figure}[h]
@@ -253,8 +302,6 @@ We can even go further and state that the existence of different domains in our 
 Another limitation that stems from these metrics is that quantifying the importance of each is difficult. Especially when considering metrics such as Discordance and Instability. The way these metrics is computed is arbitrary and their interpretation is not straightforward. This is especially true for Discordance when being normalize, we raise two to the power of the entropy score and divide by the average number of features in an explanation. These manipulations cloud the interpretation of the metric and the way it would change when adding or removing features.\\\\
 Overall, these metrics are very useful in comparing different methods. However, they should be taken with a grain of salt and the results should be interpreted with caution\\  
 \subsubsection{Evaluating current methods}
-We start by evaluating the current existing Exstream methods and find little improvement in the Exstream Bins method over the orinal. The instability and discordance are reduced but so is the F1 Score in both ED1 and ED2 settings. The length of the explanation is also increased. The true bottle neck however is the runtime which is multiplied by a factor of 100. This limits its use in real time monitoring. The delay is due in part to poorly optimized code but also to the apparent complexity of the algorithm in processing the bins. The algorithm was also never evaluated on the entirety of the Exathlon data and only on a subset with shorted traces which limited the impact on performance.\\ 
-In order to compare, we also evaluate the original Exstream while removing the first and last 5\% normal and anomalous points. This in practice removes the uncertainty linked to the labeling at the boundaries of the intervals while keeping the algorithm simple and preserving speed. This new method improves the instability and discordance over Exstream while keeping a high F1 Score. The length of the explanation increases. This can be explained by the fact that labeling noise initially created segmentation in well separated features. Removing the noise leads to more well separated features to explain the data. \\
 \begin{table}[h]
   \centering
   \begin{tabular}{|c|c|c|c|c|c|c|}
@@ -262,13 +309,43 @@ In order to compare, we also evaluate the original Exstream while removing the f
       Methods & Time & Length & Instability & Discordance & ED1 F1 Score & ED2 F1 Score\\ 
       \hline
       Exstream  & 1.5  & 1.6  & 2.26  & 8.13 & 0.88 & 0.87  \\ 
+      Exstream 95\%  & 1.35  & 2.4  & 1.88  & 6.86 & 0.88 & 0.92\\ 
       Exstream 90\%  & 1.2  & 3.4  & 2.0  & 6.8 & 0.88 & 0.89\\ 
       Exstream Bins  & 140.7  & 4.3  & 1.5  & 6.16 & 0.79 & 0.72 \\ 
       \hline
   \end{tabular}
-  \caption{Example Table}
+  \caption{Evaluation of Exstream methods}
   \label{tab:example}
 \end{table}
+We start by evaluating the current existing Exstream methods and find little improvement in the Exstream Bins method over the orinal. The instability and discordance are reduced but so is the F1 Score in both ED1 and ED2 settings. The length of the explanation is also increased. The true bottle neck however is the runtime which is multiplied by a factor of 100. This limits its use in real time monitoring. The delay is due in part to poorly optimized code but also to the apparent complexity of the algorithm in processing the bins. The algorithm was also never evaluated on the entirety of the Exathlon data and only on a subset with shorted traces which limited the impact on performance.\\ 
+In order to compare, we also evaluate the original Exstream while removing the first and last 5\% and 2.5\%normal and anomalous points. This in practice removes the uncertainty linked to the labeling at the boundaries of the intervals while keeping the algorithm simple and preserving speed. This new method improves the instability and discordance over Exstream while keeping a high F1 Score. The length of the explanation increases. This can be explained by the fact that labeling noise initially created segmentation in well separated features. Removing the noise leads to more well separated features to explain the data.  It can also be noticed by looking at the examples that the explanations are more confident and more relevant. There are many more features that are selected with a confidence score of 1. \\
+For example, trace 5\_5\_1500000\_5\_3\_9\_91 anomaly 1\_T6 as seen below. Using all points, the responsible feature is 
+"driver\_LiveListenerBus\_listenerProcessingTime\_org\_apache\_spark\_scheduler\_EventLoggingListener\\\_stddev" with a score of 0.054. Meanwhile using 95\% of the data it is a slightly longer explanation with features : "avg\_NettyBlockTransfer\_shuffle-server\_usedDirectMemory\_value" and "avg\_jvm\_direct\_capacity\_value" with both a score of 1.\\
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.3\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{images/ex_remove5bad.png}
+      \caption{Exstream responsible feature}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.3\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{images/ex_remove5.png}
+      \caption{Exstream 95\% responsible feature 1}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.3\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{images/ex_remove52.png}
+      \caption{Exstream 95\% responsible feature 2}
+  \end{subfigure}
+  \caption{Responsible features for anomaly at Trace 5\_5\_1500000\_5\_3\_9\_91 anomaly 1\_T6. Green are normal points, red are anomalous points. Lighter parts are the 5\% removed.}
+\end{figure}
+Another element that shows the improvement when discarding 5\% of the data is the length of the explanation file. When evaluating the length of the explanation, the metric is the number of relevant features being selected. This discards completely the number of intervals for each feature. The explanation file contains both features and intervals as seen previously \autoref{explanation_format}. The length of the explanation file is therefore a good metric when evaluating the method on the same anomalies. In the case using all points, this file has 22434 lines. When using 95\% of the data it has 3720. This reflects the poor separation observed in many traces which require many intervals to describe their behavior.\\
+
+
 \section{Objectives}
 The focus of this paper will be to improve Exstream. The version we intend to work on will be the original version. This choice is motivated by a few reasons. \\
 First, looking at the metrics and inspecting a few examples shows that the version using bins does not offer any significant improvements. 
@@ -439,6 +516,7 @@ When using the decision tree method, we will obtain hypercubes as intervals. The
 \end{align*}
 This inversion between $\land$ and $\lor$ provides much more information about specific intervals where points are anomalous. It is also possible to return multiple pairs as explanation. These would be linked using $\land$ clauses.
 \subsection{Results}
+We can now evaluate our method
 \begin{table}[h]
   \centering
   \begin{tabular}{|c|c|c|c|c|c|c|}

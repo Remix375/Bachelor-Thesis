@@ -698,6 +698,45 @@ The F1 score in ED1 and ED2 settings are both improved significantly using this 
 We have first presented a method to improve the sampling of points. This method is restricted by the existence of domains. We therefore used reconstructed points. This methods doesn't provide the expected results. We then presented a method to generalize the entropy measure to higher dimensions. We showed that the submodular property doesn't hold for our data. We then presented three methods to cluster points in higher dimensions. The decision tree method was chosen as it fits all the requirements we had. We then showed how to incorporate this method into Exstream. The results show a significant improvement in the F1 score. The length of the explanation is also improved. The discordance is worsened but this is due to the way the output is handled. The method is also evaluated on different traces and different percentages of points removed. The results are consistent and show a significant improvement.\\
 Overall, even though our first endeavour in improving the sample of points wasn't successful, the second method of generalizing Exstream in higher dimensions was. The results are very satisfactory and show that the method is able to capture the interaction between features and provide a more precise explanation.\\
 \section{Further works}
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.30\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{images/ex0.png}
+      \caption{Feature 1}
+  \end{subfigure}
+  \begin{subfigure}{0.30\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{images/ex1.png}
+      \caption{Feature 2}
+  \end{subfigure}
+  \begin{subfigure}{0.30\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/ex3.png}
+    \caption{Feature 3}
+\end{subfigure}
+\begin{subfigure}{0.30\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{images/ex4.png}
+  \caption{Feature 4}
+\end{subfigure}
+\begin{subfigure}{0.30\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{images/ex5.png}
+  \caption{Feature 5}
+\end{subfigure}
+\begin{subfigure}{0.30\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{images/ex6.png}
+  \caption{Feature 6}
+\end{subfigure}
+  \caption{Example of Explanation using six features. Trace 5\_5\_1500000\_5\_3\_15\_92 1T5}
+  \label{fig:sixexpl}
+\end{figure}
+The length of the explanations are longer than in the original Exstream. There are still explanations with 5 or 6 features. For example \autoref{fig:sixexpl}, we have 6 features with each a score of 1. These features were not detected as being correlated. This number of features is too much in an explanation and some features might be correlated with each other while not being detected in the restricted sample which we have. Moreover, if features $f_1$ and $f_2$ are correlated, if $f_1$ is returned as explanation in one anomaly and $f_2$ in another, the discordance will increase. We could therefore find a way to always return the same features when they are correlated. This motivates the grouping of \textit{globally} correlated features whith a set rule on which to return as explanation.\\\\
+The method we introduced to sample using the latent space isn't satisfactory. The features correlated with time are thus still not detected and removed. This is something to work on and improve in the future.\\\\
+Our method using trees is currently limited to two dimensions. This is enough on our dataset that is simple. However, in a more complex dataset, the method would need to be generalized to more dimensions. The limitation is due to the way we search for the best set of features in a brute force manner. This is innefiscient and limits the search in higher dimensions. We could find a way to efficiently search for the best set of features in higher dimensions. This would enable the method to be used on more complex datasets.\\\\
+
 
 \newpage
 \bibliographystyle{plain}
